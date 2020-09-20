@@ -151,14 +151,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="accept.cpp" />
+    <ClCompile Include="clientmanager.cpp" />
     <ClCompile Include="clients.cpp" />
+    <ClCompile Include="commander.cpp" />
     <ClCompile Include="logger.cpp" />
     <ClCompile Include="server.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="accept.h" />
+    <ClInclude Include="clientmanager.h" />
     <ClInclude Include="clients.h" />
+    <ClInclude Include="commander.h" />
     <ClInclude Include="logger.h" />
     <ClInclude Include="Network.h" />
+    <ClInclude Include="packet.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

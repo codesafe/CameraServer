@@ -1,88 +1,32 @@
-﻿#include <stdio.h>
-#include <conio.h>
-#include <Windows.h>
-#include <winsock.h>
-#include <iostream>
 
-#include "packet.h"
+#include <process.h>
+#include <winsock.h>
+#include "accept.h"
 #include "logger.h"
 #include "clients.h"
-#include "accept.h"
 #include "clientmanager.h"
-#include "commander.h"
 
-#pragma comment (lib, "ws2_32.lib")
-
-
-bool getInput(char* c)
-{
-	if (_kbhit())
-	{
-		*c = _getch();
-		return true;
-	}
-	return false;
-}
-
-int main()
-{
-	Accept accepter;
-	accepter.Start();
-
-	while(1)
-	{
-		char key = ' ';
-		while (!getInput(&key))
-		{
-			bool ret = true;
-			while (ret)
-			{
-				Command com;
-				ret = Commander::instance()->getcommand(com);
-
-				if (com.packet == PACKET_UPLOAD_PROGRESS)
-				{
-					int value = (int&) * (com.data);
-					printf("Upload progress %d : %d\n", com.camnum, value);
-				}
-				else if (com.packet == PACKET_UPLOAD_DONE)
-				{
-					printf("Upload done %d\n", com.camnum);
-				}
-			}
-
-			Sleep(10);
-		}
-
-		printf("Input = %d\n", key);
-		if (key == '0')
-		{
-			ClientManager::instance()->SendPacket(PACKET_HALFPRESS);
-		}
-		else if (key == '1')
-		{
-			ClientManager::instance()->SendPacket(PACKET_SHOT);
-		}
-	}
-
-	return 0;
-}
-
-/*
 #define PORT 8888
 #define SOCKET_BUFFER 4096
-int _main()
+
+
+SOCKET Accept::serversock = -1;
+int Accept::clientnum = 0;
+
+Accept::Accept()
 {
-	int clientnum = 0;
+	clientnum = 0;
+}
 
-	SOCKET serversock;
-	struct sockaddr_in serv_addr;
-	struct sockaddr_in cli_addr;
+Accept::~Accept()
+{}
 
+void Accept::Start()
+{
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 		Log::getInstance()->log("error\r\n");
-
+	
 	serversock = socket(AF_INET, SOCK_STREAM, 0);
 	if (serversock == INVALID_SOCKET)
 		Log::getInstance()->log("ERROR opening socket\n");
@@ -99,7 +43,15 @@ int _main()
 	listen(serversock, 5);
 	Log::getInstance()->log("Socket created!\n");
 
+	_beginthreadex(NULL, 0, ThreadHandler, (void*)NULL, 0, NULL);
 
+}
+
+
+unsigned int __stdcall Accept::ThreadHandler(void* pParam)
+{
+
+	struct sockaddr_in cli_addr;
 
 	while (1)
 	{
@@ -118,19 +70,18 @@ int _main()
 		// client socket --> nonblock
 		unsigned long arg = 1;
 		ioctlsocket(clisock, FIONBIO, &arg);
-		Log::getInstance()->log("new Client !!");
 
 		ClientInfo info;
 		info.clientnum = clientnum++;
 		info.sock = clisock;
+		Log::getInstance()->log("New Client !!\n");
+
 
 		Clients* client = new Clients();
 		client->Start(&info);
 
-		Sleep(100);
+		ClientManager::instance()->AddClient(client);
 	}
 
 	return 0;
 }
-
-*/

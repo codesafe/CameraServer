@@ -24,6 +24,15 @@
     <ClCompile Include="clients.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="accept.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="clientmanager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="commander.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Network.h">
@@ -33,6 +42,18 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="clients.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="accept.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="clientmanager.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="packet.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="commander.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

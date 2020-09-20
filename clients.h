@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Windows.h>
+#include <winsock.h>
 #include <deque>
 
 #define MAX_CLIENT		8
@@ -25,6 +27,9 @@ struct SocketBuffer
 	}
 };
 
+#if 0
+
+class Network;
 
 class Clients
 {
@@ -35,12 +40,33 @@ public:
 	void Start(ClientInfo* info);
 
 	static unsigned int __stdcall ThreadHandler(void* pParam);
-	static void UpdateSocket(int clientnum);
-	static void recvdone(int clientnum);
-	static bool sendpacket(int clientnum, char packet, char* data, int datasize);
 
 private:
 
+	static Network network[MAX_CLIENT];
+
+}
+
+
+#else
+
+class Clients
+{
+public:
+	Clients();
+	~Clients();
+
+	void Start(ClientInfo* info);
+
+	static unsigned int __stdcall ThreadHandler(void* pParam);
+	static int UpdateSocket(int clientnum);
+	static void recvdone(int clientnum);
+	static bool sendpacket(int clientnum, char packet, char* data, int datasize);
+
+	static bool	recvpacket(int clientnum, SocketBuffer* buffer);
+	static void	parsepacket(int clientnum, SocketBuffer* buffer);
+
+private:
 	static SOCKET	socket[MAX_CLIENT];
 	static SocketBuffer sendbuffer[MAX_CLIENT];
 	static SocketBuffer recvbuffer[MAX_CLIENT];
@@ -49,3 +75,5 @@ private:
 	static CRITICAL_SECTION sendlock[MAX_CLIENT];
 
 };
+
+#endif

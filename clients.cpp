@@ -4,7 +4,50 @@
 #include <winsock.h>
 #include "clients.h"
 #include "logger.h"
+#include "commander.h"
 
+#if 0
+
+Clients::Clients()
+{
+
+}
+
+Clients::~Clients()
+{
+
+}
+
+void Clients::Start(ClientInfo* info)
+{
+	//InitializeCriticalSection(&sendlock[info->clientnum]);
+
+	_beginthreadex(NULL, 0, ThreadHandler, (void*)info, 0, NULL);
+}
+
+unsigned int __stdcall Clients::ThreadHandler(void* pParam)
+{
+	ClientInfo* info = (ClientInfo*)pParam;
+	int clientnum = info->clientnum;
+	network[clientnum].init(info->sock);
+
+	unsigned long arg = 1;
+	if (ioctlsocket(socket[clientnum], FIONBIO, &arg) != 0) return -1;
+
+	while (1)
+	{
+		int ret = UpdateSocket(clientnum);
+		if (ret < 0)
+			break;
+
+		Sleep(10);
+	}
+
+	return 0;
+}
+
+
+#else
 
 SOCKET	Clients::socket[MAX_CLIENT] = { -1, };
 SocketBuffer Clients::sendbuffer[MAX_CLIENT];
@@ -29,7 +72,6 @@ void Clients::Start(ClientInfo *info)
 	InitializeCriticalSection(&sendlock[info->clientnum]);
 
 	_beginthreadex(NULL, 0, ThreadHandler, (void*)info, 0, NULL);
-
 }
 
 unsigned int __stdcall Clients::ThreadHandler(void* pParam)
@@ -43,7 +85,16 @@ unsigned int __stdcall Clients::ThreadHandler(void* pParam)
 
 	while (1)
 	{
-		UpdateSocket(clientnum);
+		if (UpdateSocket(clientnum) < 0)
+			break;
+		
+		SocketBuffer buffer;
+		bool ret = recvpacket(clientnum, &buffer);
+		if (ret == true)
+		{
+			// packet parse
+			parsepacket(clientnum, &buffer);
+		}
 
 		Sleep(10);
 	}
@@ -51,7 +102,7 @@ unsigned int __stdcall Clients::ThreadHandler(void* pParam)
 	return 0;
 }
 
-void Clients::UpdateSocket(int clientnum)
+int Clients::UpdateSocket(int clientnum)
 {
 	fd_set read_flags, write_flags;
 	struct timeval waitd;          // the max wait time for an event
@@ -88,18 +139,16 @@ void Clients::UpdateSocket(int clientnum)
 				memcpy(recvbuffer[clientnum].buffer, in, recvsize);
 				recvdone(clientnum);
 			}
-
-
 		}
 		else
 		{
 			// disconnected
 			closesocket(clisock);
 			clisock = -1;
-			Log::getInstance()->log("Client disconnected!!");
+			Log::getInstance()->log("Client disconnected!!\n");
+			return -1;
 		}
 	}
-
 
 	// 보낼것이 있으면 보낸다로 설정
 	if (sendbuffer[clientnum].totalsize > 0)
@@ -122,6 +171,7 @@ void Clients::UpdateSocket(int clientnum)
 		}
 	}
 
+	return 0;
 }
 
 void	Clients::recvdone(int clientnum)
@@ -173,3 +223,30 @@ bool	Clients::sendpacket(int clientnum, char packet, char* data, int datasize)
 
 	return true;
 }
+
+// Read packet for parse
+bool	Clients::recvpacket(int clientnum, SocketBuffer* buffer)
+{
+	if (!recvbufferlist[clientnum].empty())
+	{
+		buffer->totalsize = recvbufferlist[clientnum][0].totalsize;
+		buffer->currentsize = recvbufferlist[clientnum][0].currentsize;
+		memcpy(buffer->buffer, recvbufferlist[clientnum][0].buffer, SOCKET_BUFFER);
+		recvbufferlist[clientnum].pop_front();
+		return true;
+	}
+
+	return false;
+}
+
+void	Clients::parsepacket(int clientnum, SocketBuffer* buffer)
+{
+	int datasize = (int&) * (buffer->buffer);
+	char packet = (char&) * (buffer->buffer + sizeof(int));
+
+	Commander::instance()->addcommand(clientnum, packet, buffer->buffer + sizeof(int) + sizeof(char), datasize);
+}
+
+
+
+#endif
