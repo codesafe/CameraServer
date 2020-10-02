@@ -6,29 +6,6 @@
 #define PORT 8888
 #define SOCKET_BUFFER 4096
 
-
-// packet
-#define RESPONSE_OK		0x05
-#define RESPONSE_FAIL	0x06
-
-#define CLIENT_LOG_INFO		0x0a
-#define CLIENT_LOG_WARN		0x0b
-#define CLIENT_LOG_ERR		0x0c
-
-#define FORCEPATCH			0x0A
-#define DEVICERESET			0x10
-#define	PLAYMOTION			0x20
-
-#define WHEEL_FORWARD		0x30
-#define WHEEL_BACKWARD		0x31
-#define WHEEL_STOP			0x32
-#define WHEEL_TURNLEFT		0x33
-#define WHEEL_TURNRIGHT		0x34
-
-#define DISPLAY_PIC			0x40
-
-
-
 struct SocketBuffer
 {
 	int		totalsize;		// 전체 길이

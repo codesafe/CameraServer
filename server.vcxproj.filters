@@ -33,6 +33,9 @@
     <ClCompile Include="commander.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="udpsocket.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Network.h">
@@ -54,6 +57,12 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="commander.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="predef.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="udpsocket.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

@@ -3,9 +3,7 @@
 #include <Windows.h>
 #include <winsock.h>
 #include <deque>
-
-#define MAX_CLIENT		8
-#define SOCKET_BUFFER	4096
+#include "predef.h"
 
 struct ClientInfo
 {
@@ -50,6 +48,8 @@ private:
 
 #else
 
+class UDP_Socket;
+
 class Clients
 {
 public:
@@ -62,15 +62,21 @@ public:
 	static int UpdateSocket(int clientnum);
 	static void recvdone(int clientnum);
 	static bool sendpacket(int clientnum, char packet, char* data, int datasize);
+	static bool sendpacketImmediate(int clientnum, char packet, char* data, int datasize);
 
 	static bool	recvpacket(int clientnum, SocketBuffer* buffer);
 	static void	parsepacket(int clientnum, SocketBuffer* buffer);
+
+	static void sendudp(int clientnum, char packet, char command);
+
 
 private:
 	static SOCKET	socket[MAX_CLIENT];
 	static SocketBuffer sendbuffer[MAX_CLIENT];
 	static SocketBuffer recvbuffer[MAX_CLIENT];
 	static std::deque<SocketBuffer>	recvbufferlist[MAX_CLIENT];
+
+	static UDP_Socket	udpsocket[MAX_CLIENT];
 
 	static CRITICAL_SECTION sendlock[MAX_CLIENT];
 

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <vector>
+#include "predef.h"
 
 class Clients;
-
 class ClientManager
 {
 public:
@@ -16,16 +16,21 @@ public:
 	}
 
 
-	void AddClient(Clients* client);
-	void SendPacket(int packet);
+	int AddClient(Clients* client);
+	void RemoveClient(Clients* client);
+
+	void SendPacket(char packet, char command);
 
 private:
+
+	int FindEmpty();
+
 	ClientManager();
 	~ClientManager();
 
 	static ClientManager* _instance;
 
-	std::vector< Clients*> clientlist;
-
+	//std::vector< Clients*> clientlist;
+	Clients* clientlist[MAX_CLIENT];
 	
 };

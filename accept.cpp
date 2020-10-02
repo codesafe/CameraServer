@@ -36,6 +36,9 @@ void Accept::Start()
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_port = htons(PORT);
 
+	int flag = 1;
+	int ret = setsockopt(serversock, IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+
 	int status = bind(serversock, (struct sockaddr*) & serv_addr, sizeof(struct sockaddr_in));
 	if (status == SOCKET_ERROR)
 		Log::getInstance()->log("Bind Error\n");
@@ -71,16 +74,18 @@ unsigned int __stdcall Accept::ThreadHandler(void* pParam)
 		unsigned long arg = 1;
 		ioctlsocket(clisock, FIONBIO, &arg);
 
-		ClientInfo info;
-		info.clientnum = clientnum++;
-		info.sock = clisock;
-		Log::getInstance()->log("New Client !!\n");
+		int flag = 1;
+		int ret = setsockopt(clisock, IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
 
+		ClientInfo info;
+		info.sock = clisock;
 
 		Clients* client = new Clients();
+		int n = ClientManager::instance()->AddClient(client);
+		info.clientnum = n;
 		client->Start(&info);
 
-		ClientManager::instance()->AddClient(client);
+		printf("New Camera Connected : %d !!\n", n);
 	}
 
 	return 0;

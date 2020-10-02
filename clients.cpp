@@ -5,6 +5,7 @@
 #include "clients.h"
 #include "logger.h"
 #include "commander.h"
+#include "udpsocket.h"
 
 #if 0
 
@@ -54,6 +55,8 @@ SocketBuffer Clients::sendbuffer[MAX_CLIENT];
 SocketBuffer Clients::recvbuffer[MAX_CLIENT];
 std::deque<SocketBuffer> Clients::recvbufferlist[MAX_CLIENT];
 
+UDP_Socket	Clients::udpsocket[MAX_CLIENT];
+
 CRITICAL_SECTION Clients::sendlock[MAX_CLIENT];
 
 Clients::Clients()
@@ -80,6 +83,12 @@ unsigned int __stdcall Clients::ThreadHandler(void* pParam)
 	int clientnum = info->clientnum;
 	socket[clientnum] = info->sock;
 
+	char buf[TCP_BUFFER] = { 0, };
+	buf[0] = (char)clientnum;
+	send(socket[clientnum], buf, TCP_BUFFER, 0);
+
+	udpsocket[clientnum].init(clientnum, "192.168.29.233");
+
 	unsigned long arg = 1;
 	if (ioctlsocket(socket[clientnum], FIONBIO, &arg) != 0) return -1;
 
@@ -96,7 +105,7 @@ unsigned int __stdcall Clients::ThreadHandler(void* pParam)
 			parsepacket(clientnum, &buffer);
 		}
 
-		Sleep(10);
+		Sleep(1);
 	}
 
 	return 0;
@@ -114,6 +123,30 @@ int Clients::UpdateSocket(int clientnum)
 	FD_ZERO(&read_flags);
 	FD_ZERO(&write_flags);
 	FD_SET(clisock, &read_flags);
+
+
+	// 보낼것이 있으면 보낸다로 설정
+	if (sendbuffer[clientnum].totalsize > 0)
+		FD_SET(clisock, &write_flags);
+
+	// 보냄
+	if (FD_ISSET(clisock, &write_flags))
+	{
+		FD_CLR(clisock, &write_flags);
+		int sendsize = ::send(clisock, sendbuffer[clientnum].buffer + sendbuffer[clientnum].currentsize, sendbuffer[clientnum].totalsize - sendbuffer[clientnum].currentsize, 0);
+		if (sendbuffer[clientnum].totalsize == sendbuffer[clientnum].currentsize + sendsize)
+		{
+			sendbuffer[clientnum].totalsize = -1;
+			sendbuffer[clientnum].currentsize = 0;
+			memset(sendbuffer[clientnum].buffer, 0, SOCKET_BUFFER);
+		}
+		else
+		{
+			sendbuffer[clientnum].currentsize += sendsize;
+		}
+	}
+
+
 
 	sel = select(clisock + 1, &read_flags, &write_flags, (fd_set*)0, &waitd);
 	if (FD_ISSET(clisock, &read_flags))
@@ -149,28 +182,6 @@ int Clients::UpdateSocket(int clientnum)
 			return -1;
 		}
 	}
-
-	// 보낼것이 있으면 보낸다로 설정
-	if (sendbuffer[clientnum].totalsize > 0)
-		FD_SET(clisock, &write_flags);
-
-	// 보냄
-	if (FD_ISSET(clisock, &write_flags))
-	{
-		FD_CLR(clisock, &write_flags);
-		int sendsize = ::send(clisock, sendbuffer[clientnum].buffer + sendbuffer[clientnum].currentsize, sendbuffer[clientnum].totalsize - sendbuffer[clientnum].currentsize, 0);
-		if (sendbuffer[clientnum].totalsize == sendbuffer[clientnum].currentsize + sendsize)
-		{
-			sendbuffer[clientnum].totalsize = -1;
-			sendbuffer[clientnum].currentsize = 0;
-			memset(sendbuffer[clientnum].buffer, 0, SOCKET_BUFFER);
-		}
-		else
-		{
-			sendbuffer[clientnum].currentsize += sendsize;
-		}
-	}
-
 	return 0;
 }
 
@@ -224,6 +235,29 @@ bool	Clients::sendpacket(int clientnum, char packet, char* data, int datasize)
 	return true;
 }
 
+bool Clients::sendpacketImmediate(int clientnum, char packet, char* data, int datasize)
+{
+	if (socket[clientnum] == -1) return false;
+
+	SOCKET clisock = socket[clientnum];
+
+	sendbuffer[clientnum].currentsize = 0;
+	sendbuffer[clientnum].totalsize = sizeof(int) + sizeof(char) + datasize;
+
+	memcpy(sendbuffer[clientnum].buffer, (void*)&datasize, sizeof(int));
+	memcpy(sendbuffer[clientnum].buffer + sizeof(int), &packet, sizeof(char));
+	memcpy(sendbuffer[clientnum].buffer + sizeof(int) + sizeof(char), data, datasize);
+
+	int sendsize = ::send(clisock, sendbuffer[clientnum].buffer + sendbuffer[clientnum].currentsize, sendbuffer[clientnum].totalsize - sendbuffer[clientnum].currentsize, 0);
+
+	sendbuffer[clientnum].totalsize = -1;
+	sendbuffer[clientnum].currentsize = 0;
+	memset(sendbuffer[clientnum].buffer, 0, SOCKET_BUFFER);
+
+	return true;
+}
+
+
 // Read packet for parse
 bool	Clients::recvpacket(int clientnum, SocketBuffer* buffer)
 {
@@ -247,6 +281,13 @@ void	Clients::parsepacket(int clientnum, SocketBuffer* buffer)
 	Commander::instance()->addcommand(clientnum, packet, buffer->buffer + sizeof(int) + sizeof(char), datasize);
 }
 
+void	Clients::sendudp(int clientnum, char packet, char command)
+{
+	char buf[UDP_BUFFER] = { 0, };
+	buf[0] = packet;
+
+	udpsocket[clientnum].send(buf, UDP_BUFFER);
+}
 
 
 #endif
